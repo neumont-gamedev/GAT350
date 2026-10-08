@@ -14,7 +14,7 @@ namespace nu
 		m_input = std::make_unique<Input>();
 		m_physics = std::make_unique<Physics>();
 
-		m_renderer->Initialize("Game Engine", 1280, 1024);
+		m_renderer->Initialize("Graphics Engine", 1280, 1024);
 		m_particleSystem->Initialize();
 		m_audio->Initialize();
 		m_input->Initialize();

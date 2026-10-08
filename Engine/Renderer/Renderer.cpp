@@ -2,6 +2,8 @@
 #include "Renderer.h"
 #include "Model.h"
 #include "Texture.h"
+#include "Pipeline.h"
+#include "VertexBuffer.h"
 
 #include "Math/Transform.h"
 #include "Math/MathUtils.h"
@@ -105,22 +107,30 @@ namespace nu
             color_target_info.store_op = SDL_GPU_STOREOP_STORE;
 
             m_renderPass = SDL_BeginGPURenderPass(m_commandBuffer, &color_target_info, 1, nullptr);
-            SDL_EndGPURenderPass(m_renderPass);
         }
 
         return true;
     }
 
-    bool Renderer::EndFrame() const
+    bool Renderer::EndFrame()
     {
+        if (m_renderPass)
+        {
+            SDL_EndGPURenderPass(m_renderPass);
+            m_renderPass = nullptr;
+        }
+
         if (!SDL_SubmitGPUCommandBuffer(m_commandBuffer))
         {
             std::cerr << "Could not submit command buffer: " << SDL_GetError() << std::endl;
             return false;
         }
 
+        m_commandBuffer = nullptr;
+
         return true;
     }
+
     void Renderer::DrawPoint(float x, float y) const
     {
         SDL_RenderPoint(m_renderer, x, y);
@@ -208,5 +218,40 @@ namespace nu
 
         // https://wiki.libsdl.org/SDL3/SDL_RenderTexture
         SDL_RenderTextureRotated(m_renderer, texture.m_texture, &sourceRect, &destRect, angle, NULL, (flipH) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
+    }
+
+    void Renderer::SetPipeline(const Pipeline& pipeline)
+    {
+        // bind the pipeline to the current render pass
+        // the pipeline sets the shaders and render settings used by the draw calls that follow
+        SDL_BindGPUGraphicsPipeline(m_renderPass, pipeline.m_gpuPipeline);
+    }
+
+    void Renderer::SetVertexBuffer(const VertexBuffer& vertexBuffer)
+    {
+        // describe which buffer to bind and where to start reading from
+
+        SDL_GPUBufferBinding binding{
+            .buffer = vertexBuffer.m_gpuBuffer,
+            .offset = 0
+        };
+
+        // bind the vertex buffer to the current render pass
+        SDL_BindGPUVertexBuffers(
+            m_renderPass,
+            0,
+            &binding,
+            1);
+    }
+
+    void Renderer::Draw(uint32_t vertexCount)
+    {
+        // draw using the currently bound pipeline and vertex buffer
+        SDL_DrawGPUPrimitives(
+            m_renderPass,
+            vertexCount,
+            1,  // instance count
+            0,  // first vertex
+            0); // first instance
     }
 }
