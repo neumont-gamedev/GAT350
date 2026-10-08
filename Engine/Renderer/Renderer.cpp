@@ -89,7 +89,6 @@ namespace nu
             return false;
         }
 
-
         SDL_GPUTexture* swapchainTexture = nullptr;
         if (!SDL_WaitAndAcquireGPUSwapchainTexture(m_commandBuffer, m_window, &swapchainTexture, nullptr, nullptr))
         {
